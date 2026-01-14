@@ -12,8 +12,15 @@ class SectionHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          Text(actionText, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
+          Text(
+            title, 
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+          ),
+          if (actionText.isNotEmpty)
+            Text(
+              actionText, 
+              style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)
+            ),
         ],
       ),
     );
@@ -25,7 +32,12 @@ class UtilityItem extends StatelessWidget {
   final IconData icon;
   final Color color;
 
-  const UtilityItem({super.key, required this.label, required this.icon, required this.color});
+  const UtilityItem({
+    super.key, 
+    required this.label, 
+    required this.icon, 
+    required this.color
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -34,11 +46,18 @@ class UtilityItem extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1), 
+              shape: BoxShape.circle
+            ),
             child: Icon(icon, color: color),
           ),
           const SizedBox(height: 8),
-          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+          Text(
+            label, 
+            textAlign: TextAlign.center, 
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)
+          ),
         ],
       ),
     );

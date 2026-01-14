@@ -16,11 +16,13 @@ class SummaryCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF7B88FF), Color(0xFF635AD9)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF635AD9).withOpacity(0.3),
+            color: const Color(0xFF635AD9).withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           )
@@ -43,13 +45,23 @@ class SummaryCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          const Text(
-            "STK: 123 456 789",
-            style: TextStyle(
-              color: Colors.white,
-              letterSpacing: 2,
-              fontSize: 14,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "STK: 123 456 789",
+                style: TextStyle(
+                  color: Colors.white,
+                  letterSpacing: 2,
+                  fontSize: 14,
+                ),
+              ),
+              Icon(
+                Icons.contactless_outlined,
+                color: Colors.white.withValues(alpha: 0.5),
+                size: 24,
+              ),
+            ],
           ),
         ],
       ),

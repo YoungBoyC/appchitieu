@@ -16,7 +16,6 @@ class ReportTab extends StatelessWidget {
     required this.totalExpense,
   });
 
-  // HÀM TÍNH TOÁN DỮ LIỆU BIỂU ĐỒ
   List<PieChartSectionData> _getChartSections() {
     final expenseTransactions = transactions.where((t) => !t.isIncome).toList();
     if (expenseTransactions.isEmpty) {
@@ -32,10 +31,11 @@ class ReportTab extends StatelessWidget {
     }
 
     final colors = [
+      const Color(0xFF635AD9),
       Colors.redAccent,
       Colors.blueAccent,
-      Colors.greenAccent,
       Colors.orangeAccent,
+      Colors.greenAccent,
       Colors.purpleAccent
     ];
     int index = 0;
@@ -56,7 +56,6 @@ class ReportTab extends StatelessWidget {
     }).toList();
   }
 
-  // HÀM BUILD DUY NHẤT
   @override
   Widget build(BuildContext context) {
     final expenseList = transactions.where((t) => !t.isIncome).toList();
@@ -66,17 +65,24 @@ class ReportTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 40),
+          const SizedBox(height: 20),
           const Text("Báo cáo chi tiêu",
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 30),
+          const SizedBox(height: 20),
           
-          // Khu vực hiển thị biểu đồ PieChart
           Container(
             height: 250,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-                color: Colors.white, borderRadius: BorderRadius.circular(20)),
+                color: Colors.white, 
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  )
+                ]),
             child: PieChart(PieChartData(
               sections: _getChartSections(),
               centerSpaceRadius: 40,
@@ -94,9 +100,8 @@ class ReportTab extends StatelessWidget {
               child: Text("Chưa có dữ liệu chi tiêu để phân tích"),
             ))
           else
-            ...expenseList
-                .map((t) => TransactionItem(transaction: t))
-                .toList(),
+            ...expenseList.map((t) => TransactionItem(transaction: t)),
+            
           const SizedBox(height: 100),
         ],
       ),

@@ -24,14 +24,13 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   DateTime _selectedMonth = DateTime.now();
   
-  // --- GIỮ NGUYÊN & BỔ SUNG: Biến hạn mức chi tiêu ---
   double _monthlyBudget = 0.0; 
   final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
 
   @override
   void initState() {
     super.initState();
-    _loadData(); // Tải cả giao dịch và hạn mức
+    _loadData();
   }
 
   // --- LOGIC LƯU TRỮ DỮ LIỆU ---
@@ -46,7 +45,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
     
-    // Load Transactions
     final String? savedData = prefs.getString('saved_transactions');
     if (savedData != null) {
       final List<dynamic> decodedData = jsonDecode(savedData);
@@ -55,19 +53,18 @@ class _HomeScreenState extends State<HomeScreen> {
           .toList();
     }
 
-    // Load Budget (Hạn mức)
     _monthlyBudget = prefs.getDouble('monthly_budget') ?? 5000000.0;
     
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   Future<void> _updateBudget(double newBudget) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('monthly_budget', newBudget);
-    setState(() => _monthlyBudget = newBudget);
+    if (mounted) setState(() => _monthlyBudget = newBudget);
   }
 
-  // --- LOGIC TÍNH TOÁN (Lọc theo tháng) ---
+  // --- LOGIC TÍNH TOÁN ---
   List<TransactionModel> get _filteredTransactions {
     return _transactions.where((t) {
       return t.date.month == _selectedMonth.month && 
@@ -87,7 +84,22 @@ class _HomeScreenState extends State<HomeScreen> {
     return income - expense;
   }
 
-  // --- UI HELPER: DIALOG HẠN MỨC ---
+  // --- ĐIỀU HƯỚNG ---
+  void _navigateToMobileAdd() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AddTransactionScreen()),
+    );
+    
+    if (result != null && result is TransactionModel) {
+      setState(() {
+        _transactions.insert(0, result);
+      });
+      _saveTransactions();
+    }
+  }
+
+  // --- UI HELPER: MODALS ---
   void _showBudgetDialog() {
     final controller = TextEditingController(text: _monthlyBudget.toStringAsFixed(0));
     showDialog(
@@ -102,6 +114,10 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Hủy")),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF635AD9),
+              foregroundColor: Colors.white,
+            ),
             onPressed: () {
               final val = double.tryParse(controller.text);
               if (val != null) _updateBudget(val);
@@ -153,20 +169,6 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
-  }
-
-  // --- ĐIỀU HƯỚNG ---
-  void _navigateToMobileAdd() async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const AddTransactionScreen()),
-    );
-    if (result != null && result is TransactionModel) {
-      setState(() {
-        _transactions.insert(0, result);
-      });
-      _saveTransactions();
-    }
   }
 
   // --- APPBAR ---
@@ -384,10 +386,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showAddWalletSheet() {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Tính năng liên kết ngân hàng đang phát triển!")));
-  }
-
   // --- BUILD ---
   @override
   Widget build(BuildContext context) {
@@ -400,20 +398,18 @@ class _HomeScreenState extends State<HomeScreen> {
           HomeTab(
             transactions: _filteredTransactions,
             currentBalance: currentBalance,
-            monthlyBudget: _monthlyBudget, // Đã thêm
-            totalExpense: totalExpense,     // Đã thêm
+            monthlyBudget: _monthlyBudget, 
+            totalExpense: totalExpense,     
             onTopUp: _showTopUpSheet,
             onTransfer: _showTransferSheet,
             onDelete: _deleteTransaction,
-            onSetBudget: _showBudgetDialog, // Đã thêm
+            onSetBudget: _showBudgetDialog, 
           ),
           WalletTab(
             currentBalance: currentBalance,
             totalIncome: totalIncome,
             totalExpense: totalExpense,
-            formattedBalance: currencyFormat.format(currentBalance),
             onShowDetails: _showWalletDetails,
-            onAddWallet: _showAddWalletSheet,
           ),
           ReportTab(
             transactions: _filteredTransactions, 

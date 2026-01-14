@@ -26,7 +26,6 @@ class SettingsTab extends StatelessWidget {
           leading: const Icon(Icons.logout, color: Colors.red),
           title: const Text("Đăng xuất", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           onTap: () {
-            // Logic đăng xuất
           },
         ),
       ],
