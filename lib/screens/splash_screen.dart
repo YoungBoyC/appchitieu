@@ -20,7 +20,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (!mounted) return;
 
-    if (context.mounted) { // Thêm kiểm tra context còn hoạt động không
+    if (context.mounted) { 
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomeScreen()),
@@ -31,7 +31,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      backgroundColor: Color(0xFF635AD9), // Đổi sang màu tím cho đồng bộ với App
+      backgroundColor: Color(0xFF635AD9), 
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
