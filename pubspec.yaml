@@ -38,6 +38,8 @@ dependencies:
   intl: any
   shared_preferences: ^2.5.4
   mobile_scanner: 5.1.0
+  pdf: ^3.11.3
+  printing: ^5.13.1
 
 dev_dependencies:
   flutter_test:

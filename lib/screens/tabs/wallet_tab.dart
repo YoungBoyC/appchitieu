@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
-// Model đơn giản cho Ví
+// --- MODELS ---
+
 class WalletModel {
   final String id;
   final String name;
@@ -9,7 +13,7 @@ class WalletModel {
   final IconData icon;
   final Color color;
   final bool isLinked;
-  final String type; // 'cash', 'bank', 'ewallet'
+  final String type;
 
   WalletModel({
     required this.id,
@@ -21,6 +25,28 @@ class WalletModel {
     required this.type,
   });
 }
+
+class SavingGoal {
+  final String id;
+  final String name;
+  final double target;
+  final double current;
+  final Color color;
+
+  SavingGoal({required this.id, required this.name, required this.target, required this.current, required this.color});
+}
+
+class BillItem {
+  final String id;
+  final String name;
+  final double amount;
+  final DateTime dueDate;
+  bool isPaid;
+
+  BillItem({required this.id, required this.name, required this.amount, required this.dueDate, this.isPaid = false});
+}
+
+// --- MAIN WIDGET ---
 
 class WalletTab extends StatefulWidget {
   final double currentBalance;
@@ -44,57 +70,121 @@ class _WalletTabState extends State<WalletTab> {
   final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
 
   List<WalletModel> wallets = [
-    WalletModel(id: '1', name: "Tiền mặt", balance: 500000, icon: Icons.money, color: Colors.green, type: 'cash'),
+    WalletModel(id: '1', name: "Tiền mặt", balance: 5000000, icon: Icons.money, color: Colors.green, type: 'cash'),
     WalletModel(id: '2', name: "MoMo", balance: 1250000, icon: Icons.account_balance_wallet, color: Colors.pink, type: 'ewallet', isLinked: true),
   ];
 
-  final List<Map<String, dynamic>> supportedBanks = [
-    {'name': 'MB Bank', 'color': Colors.blue, 'icon': Icons.account_balance},
-    {'name': 'Vietcombank', 'color': Colors.green.shade800, 'icon': Icons.account_balance},
-    {'name': 'Techcombank', 'color': Colors.red, 'icon': Icons.account_balance},
-    {'name': 'TPBank', 'color': Colors.purple, 'icon': Icons.account_balance},
-    {'name': 'ZaloPay', 'color': Colors.blueAccent, 'icon': Icons.qr_code},
+  double monthlyLimit = 10000000;
+
+  List<SavingGoal> savingGoals = [
+    SavingGoal(id: 's1', name: "Mua iPhone 16", target: 30000000, current: 12000000, color: Colors.blue),
   ];
 
-  void _showAddWalletBottomSheet() {
+  List<BillItem> bills = [
+    BillItem(id: 'b1', name: "Tiền điện", amount: 1200000, dueDate: DateTime.now().add(const Duration(days: 5))),
+  ];
+
+  // --- HÀM XUẤT PDF ---
+  Future<void> _exportToPDF() async {
+    final pdf = pw.Document();
+    final font = await PdfGoogleFonts.beVietnamProRegular();
+    final fontBold = await PdfGoogleFonts.beVietnamProBold();
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text("BÁO CÁO TÀI CHÍNH CÁ NHÂN", style: pw.TextStyle(font: fontBold, fontSize: 24)),
+              pw.SizedBox(height: 10),
+              pw.Text("Ngày xuất: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}", style: pw.TextStyle(font: font)),
+              pw.Divider(),
+              pw.SizedBox(height: 20),
+              pw.Text("1. Tổng quan", style: pw.TextStyle(font: fontBold, fontSize: 18)),
+              pw.Text("Tổng thu: ${currencyFormat.format(widget.totalIncome)}", style: pw.TextStyle(font: font)),
+              pw.Text("Tổng chi: ${currencyFormat.format(widget.totalExpense)}", style: pw.TextStyle(font: font)),
+              pw.Text("Số dư hiện tại: ${currencyFormat.format(widget.currentBalance)}", style: pw.TextStyle(font: font)),
+              pw.SizedBox(height: 20),
+              pw.Text("2. Danh sách ví", style: pw.TextStyle(font: fontBold, fontSize: 18)),
+              ...wallets.map((w) => pw.Text("- ${w.name}: ${currencyFormat.format(w.balance)}", style: pw.TextStyle(font: font))),
+              pw.SizedBox(height: 20),
+              pw.Text("3. Mục tiêu tiết kiệm", style: pw.TextStyle(font: fontBold, fontSize: 18)),
+              ...savingGoals.map((g) => pw.Text("- ${g.name}: ${((g.current / g.target) * 100).toStringAsFixed(1)}% (${currencyFormat.format(g.current)})", style: pw.TextStyle(font: font))),
+            ],
+          );
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
+  }
+
+  // --- TÍNH NĂNG LIÊN KẾT NGÂN HÀNG THỰC (SIMULATION) ---
+  void _showAddWalletFlow() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Thêm nguồn tiền", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.edit, color: Colors.blue),
+              title: const Text("Nhập thủ công"),
+              subtitle: const Text("Tự nhập tên và số dư"),
+              onTap: () {
+                Navigator.pop(context);
+                _showManualAddForm();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.account_balance, color: Colors.purple),
+              title: const Text("Liên kết ngân hàng"),
+              subtitle: const Text("Kết nối an toàn qua ứng dụng ngân hàng"),
+              onTap: () {
+                Navigator.pop(context);
+                _showBankSelectionList();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showBankSelectionList() {
+    final List<Map<String, dynamic>> vnbanks = [
+      {'name': 'Vietcombank', 'color': Colors.green},
+      {'name': 'Techcombank', 'color': Colors.red},
+      {'name': 'MB Bank', 'color': Colors.blue.shade900},
+      {'name': 'TPBank', 'color': Colors.purple},
+    ];
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-        ),
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            const SizedBox(height: 10),
-            Container(width: 40, height: 5, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10))),
-            const Padding(
-              padding: EdgeInsets.all(20),
-              child: Text("Chọn nguồn tiền muốn thêm", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            ),
+            const Text("Chọn ngân hàng", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 15),
             Expanded(
               child: ListView.builder(
-                itemCount: supportedBanks.length,
-                itemBuilder: (context, index) {
-                  final bank = supportedBanks[index];
-                  return ListTile(
-                    leading: CircleAvatar(
-                      // SỬA LỖI: withOpacity -> withValues
-                      backgroundColor: (bank['color'] as Color).withValues(alpha: 0.1),
-                      child: Icon(bank['icon'], color: bank['color']),
-                    ),
-                    title: Text(bank['name']),
-                    subtitle: const Text("Liên kết tài khoản"),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _showFakeLinkProcess(bank);
-                    },
-                  );
-                },
+                itemCount: vnbanks.length,
+                itemBuilder: (context, index) => ListTile(
+                  leading: CircleAvatar(backgroundColor: vnbanks[index]['color'], child: const Icon(Icons.account_balance, color: Colors.white, size: 16)),
+                  title: Text(vnbanks[index]['name']),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _simulateBankLinking(vnbanks[index]['name'], vnbanks[index]['color']),
+                ),
               ),
             ),
           ],
@@ -103,72 +193,298 @@ class _WalletTabState extends State<WalletTab> {
     );
   }
 
-  void _showFakeLinkProcess(Map<String, dynamic> bank) {
-    final TextEditingController balanceController = TextEditingController();
-    
+  void _simulateBankLinking(String bankName, Color bankColor) {
+    Navigator.pop(context);
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(bank['icon'], color: bank['color']),
-            const SizedBox(width: 10),
-            Text("Liên kết ${bank['name']}"),
-          ],
-        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("Vui lòng nhập số dư hiện tại để đồng bộ (Giả lập API):"),
-            const SizedBox(height: 15),
-            TextField(
-              controller: balanceController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: "Số dư thực tế",
-                suffixText: "VNĐ",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 20),
+            Text("Đang kết nối an toàn với $bankName..."),
+          ],
+        ),
+      ),
+    );
+
+    // Giả lập kết nối API mất 2 giây
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      Navigator.pop(context);
+      setState(() {
+        wallets.add(WalletModel(
+          id: DateTime.now().toString(),
+          name: bankName,
+          balance: 15000000, // Giả lập số dư lấy được từ API
+          icon: Icons.account_balance,
+          color: bankColor,
+          isLinked: true,
+          type: 'bank',
+        ));
+      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Liên kết thành công $bankName!")));
+    });
+  }
+
+  void _showManualAddForm() {
+    final nameController = TextEditingController();
+    final balanceController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Thêm ví thủ công"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: nameController, decoration: const InputDecoration(labelText: "Tên ví")),
+            TextField(controller: balanceController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Số dư")),
           ],
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy")),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF635AD9), foregroundColor: Colors.white),
-            onPressed: () {
-              if (balanceController.text.isNotEmpty) {
+              onPressed: () {
                 setState(() {
                   wallets.add(WalletModel(
                     id: DateTime.now().toString(),
-                    name: bank['name'],
+                    name: nameController.text,
                     balance: double.tryParse(balanceController.text) ?? 0,
-                    icon: bank['icon'],
-                    color: bank['color'],
-                    type: 'bank',
-                    isLinked: true,
+                    icon: Icons.wallet,
+                    color: Colors.grey,
+                    type: 'manual',
                   ));
                 });
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Đã liên kết ${bank['name']} thành công!")),
-                );
-              }
-            },
-            child: const Text("Xác nhận & Liên kết"),
-          ),
+              },
+              child: const Text("Thêm")),
         ],
       ),
     );
   }
 
-  void _showFeatureMessage(String featureName) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Tính năng '$featureName' đang được cập nhật!"),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: const Color(0xFF635AD9),
-        duration: const Duration(seconds: 1),
+  // --- FORM THÊM MỤC TIÊU TIẾT KIỆM ---
+  void _showAddSavingGoal() {
+    final nameController = TextEditingController();
+    final targetController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Mục tiêu mới"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: nameController, decoration: const InputDecoration(labelText: "Tên mục tiêu (VD: Mua xe)")),
+            TextField(controller: targetController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Số tiền cần tiết kiệm")),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy")),
+          ElevatedButton(
+            onPressed: () {
+              if (nameController.text.isNotEmpty && targetController.text.isNotEmpty) {
+                setState(() {
+                  savingGoals.add(SavingGoal(
+                    id: DateTime.now().toString(),
+                    name: nameController.text,
+                    target: double.parse(targetController.text),
+                    current: 0,
+                    color: Colors.blueAccent,
+                  ));
+                });
+                Navigator.pop(context);
+              }
+            },
+            child: const Text("Thêm"),
+          )
+        ],
+      ),
+    );
+  }
+
+  // --- FORM THÊM HÓA ĐƠN ---
+  void _showAddBill() {
+    final nameController = TextEditingController();
+    final amountController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Hóa đơn mới"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: nameController, decoration: const InputDecoration(labelText: "Tên hóa đơn (VD: Tiền nước)")),
+            TextField(controller: amountController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Số tiền")),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy")),
+          ElevatedButton(
+            onPressed: () {
+              if (nameController.text.isNotEmpty && amountController.text.isNotEmpty) {
+                setState(() {
+                  bills.add(BillItem(
+                    id: DateTime.now().toString(),
+                    name: nameController.text,
+                    amount: double.parse(amountController.text),
+                    dueDate: DateTime.now().add(const Duration(days: 7)),
+                  ));
+                });
+                Navigator.pop(context);
+              }
+            },
+            child: const Text("Thêm"),
+          )
+        ],
+      ),
+    );
+  }
+
+  // --- CÁC MODAL HIỂN THỊ DANH SÁCH + TÍNH NĂNG XÓA ---
+  void _showSavingGoalsList() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          height: 500,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Tiết kiệm", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  IconButton(onPressed: _showAddSavingGoal, icon: const Icon(Icons.add_circle, color: Color(0xFF635AD9))),
+                ],
+              ),
+              const Divider(),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: savingGoals.length,
+                  itemBuilder: (context, index) {
+                    final goal = savingGoals[index];
+                    double progress = (goal.current / goal.target).clamp(0, 1);
+                    return Dismissible(
+                      key: Key(goal.id),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        color: Colors.red,
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        child: const Icon(Icons.delete, color: Colors.white),
+                      ),
+                      onDismissed: (direction) {
+                        setState(() => savingGoals.removeAt(index));
+                        setModalState(() {});
+                      },
+                      child: ListTile(
+                        title: Text(goal.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 5),
+                            LinearProgressIndicator(value: progress, color: goal.color, backgroundColor: Colors.grey.shade200),
+                            const SizedBox(height: 5),
+                            Text("${currencyFormat.format(goal.current)} / ${currencyFormat.format(goal.target)}"),
+                          ],
+                        ),
+                        trailing: Text("${(progress * 100).toStringAsFixed(0)}%"),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showBillsList() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          height: 500,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Hóa đơn sắp tới", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  IconButton(onPressed: _showAddBill, icon: const Icon(Icons.add_circle, color: Colors.teal)),
+                ],
+              ),
+              const Divider(),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: bills.length,
+                  itemBuilder: (context, index) {
+                    final bill = bills[index];
+                    return Dismissible(
+                      key: Key(bill.id),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        color: Colors.red,
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        child: const Icon(Icons.delete, color: Colors.white),
+                      ),
+                      onDismissed: (direction) {
+                        setState(() => bills.removeAt(index));
+                        setModalState(() {});
+                      },
+                      child: ListTile(
+                        leading: const Icon(Icons.receipt_long, color: Colors.teal),
+                        title: Text(bill.name),
+                        subtitle: Text("Hạn: ${DateFormat('dd/MM/yyyy').format(bill.dueDate)}"),
+                        trailing: Text(currencyFormat.format(bill.amount), style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- HÀM THIẾT LẬP HẠN MỨC ---
+  void _showEditLimit() {
+    final limitController = TextEditingController(text: monthlyLimit.toStringAsFixed(0));
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Thiết lập hạn mức chi tiêu"),
+        content: TextField(
+          controller: limitController,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(labelText: "Hạn mức tháng này (₫)"),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy")),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                monthlyLimit = double.tryParse(limitController.text) ?? monthlyLimit;
+              });
+              Navigator.pop(context);
+            },
+            child: const Text("Cập nhật"),
+          )
+        ],
       ),
     );
   }
@@ -186,9 +502,7 @@ class _WalletTabState extends State<WalletTab> {
           const SizedBox(height: 40),
           const Text("Ví của tôi", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
           const SizedBox(height: 30),
-          
           _buildTotalWalletSummary(),
-          
           const SizedBox(height: 30),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -198,24 +512,42 @@ class _WalletTabState extends State<WalletTab> {
             ],
           ),
           const SizedBox(height: 15),
-          
-          // SỬA LỖI Ở ĐÂY: Loại bỏ .toList() sau .map()
           ...wallets.map((wallet) => _walletCard(wallet)),
-          
           const SizedBox(height: 10),
           _buildAddButton(),
-          
           const SizedBox(height: 30),
           const Text("Tiện ích tài chính", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 20),
-          
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              UtilityItem(label: "Hạn mức", icon: Icons.speed, color: Colors.redAccent, onTap: () => _showFeatureMessage("Cài đặt hạn mức")),
-              UtilityItem(label: "Tiết kiệm", icon: Icons.savings, color: Colors.pinkAccent, onTap: () => _showFeatureMessage("Hũ tiết kiệm")),
-              UtilityItem(label: "Hóa đơn", icon: Icons.receipt_long, color: Colors.teal, onTap: () => _showFeatureMessage("Quản lý hóa đơn")),
-              UtilityItem(label: "Báo cáo", icon: Icons.bar_chart, color: Colors.indigo, onTap: () => _showFeatureMessage("Xuất báo cáo")),
+              UtilityItem(
+                  label: "Hạn mức",
+                  icon: Icons.speed,
+                  color: Colors.redAccent,
+                  onTap: () {
+                    showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                              title: const Text("Hạn mức chi tiêu"),
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text("Hạn mức: ${currencyFormat.format(monthlyLimit)}"),
+                                  Text("Đã tiêu: ${currencyFormat.format(widget.totalExpense)}"),
+                                  const SizedBox(height: 10),
+                                  Text("Bạn đã chi tiêu ${((widget.totalExpense / monthlyLimit) * 100).toStringAsFixed(1)}% hạn mức tháng này."),
+                                ],
+                              ),
+                              actions: [
+                                TextButton(onPressed: _showEditLimit, child: const Text("Chỉnh sửa")),
+                                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Đóng")),
+                              ],
+                            ));
+                  }),
+              UtilityItem(label: "Tiết kiệm", icon: Icons.savings, color: Colors.pinkAccent, onTap: _showSavingGoalsList),
+              UtilityItem(label: "Hóa đơn", icon: Icons.receipt_long, color: Colors.teal, onTap: _showBillsList),
+              UtilityItem(label: "Báo cáo", icon: Icons.picture_as_pdf, color: Colors.indigo, onTap: _exportToPDF),
             ],
           ),
           const SizedBox(height: 100),
@@ -230,8 +562,7 @@ class _WalletTabState extends State<WalletTab> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        // SỬA LỖI: withOpacity -> withValues
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 5))],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -257,82 +588,26 @@ class _WalletTabState extends State<WalletTab> {
   Widget _walletCard(WalletModel wallet) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 5, offset: const Offset(0, 2))],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          onTap: () => widget.onShowDetails(wallet.name, wallet.balance),
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  // SỬA LỖI: withOpacity -> withValues
-                  decoration: BoxDecoration(color: wallet.color.withValues(alpha: 0.1), shape: BoxShape.circle),
-                  child: Icon(wallet.icon, color: wallet.color, size: 24),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(wallet.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      const SizedBox(height: 4),
-                      Text(
-                        currencyFormat.format(wallet.balance),
-                        style: TextStyle(
-                          fontWeight: wallet.isLinked ? FontWeight.w600 : FontWeight.normal,
-                          color: wallet.isLinked ? Colors.black87 : Colors.grey,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (wallet.isLinked)
-                  const Tooltip(
-                    message: "Đã liên kết",
-                    child: Icon(Icons.check_circle, color: Colors.green, size: 18),
-                  )
-                else
-                  Icon(Icons.chevron_right, color: Colors.grey.shade400),
-              ],
-            ),
-          ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+      child: ListTile(
+        onTap: () => widget.onShowDetails(wallet.name, wallet.balance),
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(color: wallet.color.withOpacity(0.1), shape: BoxShape.circle),
+          child: Icon(wallet.icon, color: wallet.color),
         ),
+        title: Text(wallet.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(currencyFormat.format(wallet.balance)),
+        trailing: wallet.isLinked ? const Icon(Icons.check_circle, color: Colors.green, size: 18) : const Icon(Icons.chevron_right),
       ),
     );
   }
 
   Widget _buildAddButton() {
-    return InkWell(
-      onTap: _showAddWalletBottomSheet,
-      borderRadius: BorderRadius.circular(15),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
-          borderRadius: BorderRadius.circular(15),
-          color: Colors.white,
-        ),
-        child: const Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.add_circle_outline, color: Colors.grey, size: 20),
-              SizedBox(width: 8),
-              Text("Thêm nguồn tiền mới", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ),
-      ),
+    return OutlinedButton(
+      onPressed: _showAddWalletFlow,
+      style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+      child: const Text("+ Thêm nguồn tiền mới", style: TextStyle(color: Colors.grey)),
     );
   }
 }
@@ -354,7 +629,7 @@ class UtilityItem extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           child: Container(
             width: 60, height: 60,
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
             child: Icon(icon, color: color, size: 28),
           ),
         ),
