@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
-// Đảm bảo các đường dẫn import này chính xác với dự án của bạn
 import '../models/transaction_model.dart';
 import '../widgets/bottom_nav.dart';
 import './tabs/home_tab.dart'; 
