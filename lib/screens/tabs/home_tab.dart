@@ -15,6 +15,7 @@ class HomeTab extends StatelessWidget {
   final VoidCallback onTransfer;
   final VoidCallback onSetBudget;
   final Function(int) onDelete;
+  final String langCode; // Đã thêm để nhận diện ngôn ngữ
 
   const HomeTab({
     super.key,
@@ -26,6 +27,7 @@ class HomeTab extends StatelessWidget {
     required this.onTransfer,
     required this.onSetBudget,
     required this.onDelete,
+    required this.langCode, 
   });
 
   // --- LOGIC TÍNH TOÁN ĐIỂM BIẾN ĐỘNG SỐ DƯ ---
@@ -34,6 +36,7 @@ class HomeTab extends StatelessWidget {
       return [const FlSpot(0, 0)];
     }
 
+    // Sắp xếp giao dịch theo thời gian tăng dần để vẽ biểu đồ
     List<TransactionModel> sortedTxs = List.from(transactions);
     sortedTxs.sort((a, b) => a.date.compareTo(b.date));
 
@@ -54,6 +57,9 @@ class HomeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Biến hỗ trợ dịch thuật nhanh trong Widget
+    final isVi = langCode == 'vi';
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -61,30 +67,50 @@ class HomeTab extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 20),
+          
+          // Widget SummaryCard (Lưu ý: Bạn có thể cần truyền langCode vào đây nếu bên trong nó có text)
           SummaryCard(balance: currentBalance),
+          
           const SizedBox(height: 24),
+          
+          // Nút chức năng Nạp/Chuyển
           ActionButtons(onTopUp: onTopUp, onTransfer: onTransfer),
+          
           const SizedBox(height: 32),
-          const SectionHeader(title: "Xu hướng số dư", actionText: "Tháng này"),
-          _buildLineChartCard(),
+          
+          // Biểu đồ xu hướng
+          SectionHeader(
+            title: isVi ? "Xu hướng số dư" : "Balance Trend", 
+            actionText: isVi ? "Tháng này" : "This Month"
+          ),
+          _buildLineChartCard(context),
+          
           const SizedBox(height: 32),
-          const SectionHeader(title: "Giao dịch gần đây", actionText: "Xem tất cả"),
-          _buildTransactionList(),
-          const SizedBox(height: 100),
+          
+          // Danh sách giao dịch
+          SectionHeader(
+            title: isVi ? "Giao dịch gần đây" : "Recent Transactions", 
+            actionText: isVi ? "Xem tất cả" : "See All"
+          ),
+          _buildTransactionList(isVi),
+          
+          const SizedBox(height: 100), // Khoảng trống cho FAB
         ],
       ),
     );
   }
 
-  Widget _buildLineChartCard() {
+  // --- BUILD BIỂU ĐỒ ---
+  Widget _buildLineChartCard(BuildContext context) {
     final spots = _generateSpots();
     const primaryColor = Color(0xFF635AD9);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       height: 200, 
       padding: const EdgeInsets.only(top: 24, bottom: 12, left: 12, right: 24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -100,7 +126,7 @@ class HomeTab extends StatelessWidget {
             show: true,
             drawVerticalLine: false,
             getDrawingHorizontalLine: (value) => FlLine(
-              color: Colors.grey.withValues(alpha: 0.1),
+              color: isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.1),
               strokeWidth: 1,
             ),
           ),
@@ -135,13 +161,26 @@ class HomeTab extends StatelessWidget {
     );
   }
 
-  Widget _buildTransactionList() {
+  // --- BUILD DANH SÁCH GIAO DỊCH ---
+  Widget _buildTransactionList(bool isVi) {
     if (transactions.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 20),
-        child: Center(child: Text("Chưa có giao dịch nào")),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        child: Center(
+          child: Column(
+            children: [
+              Icon(Icons.receipt_long_outlined, size: 50, color: Colors.grey[400]),
+              const SizedBox(height: 10),
+              Text(
+                isVi ? "Chưa có giao dịch nào" : "No transactions yet",
+                style: TextStyle(color: Colors.grey[500]),
+              ),
+            ],
+          ),
+        ),
       );
     }
+    
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -162,6 +201,7 @@ class HomeTab extends StatelessWidget {
             child: const Icon(Icons.delete, color: Colors.white),
           ),
           confirmDismiss: (_) async {
+            // Gọi hàm xóa đã truyền từ HomeScreen
             onDelete(index);
             return false;
           },

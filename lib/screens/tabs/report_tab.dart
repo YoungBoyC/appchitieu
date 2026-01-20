@@ -8,12 +8,14 @@ class ReportTab extends StatefulWidget {
   final List<TransactionModel> transactions;
   final double totalIncome;
   final double totalExpense;
+  final String langCode; 
 
   const ReportTab({
     super.key,
     required this.transactions,
     required this.totalIncome,
     required this.totalExpense,
+    required this.langCode, 
   });
 
   @override

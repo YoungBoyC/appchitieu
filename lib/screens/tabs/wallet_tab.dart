@@ -53,6 +53,7 @@ class WalletTab extends StatefulWidget {
   final double totalIncome;
   final double totalExpense;
   final Function(String, double) onShowDetails;
+  final bool isDarkMode; // Nhận biến dark mode từ home
 
   const WalletTab({
     super.key,
@@ -60,6 +61,7 @@ class WalletTab extends StatefulWidget {
     required this.totalIncome,
     required this.totalExpense,
     required this.onShowDetails,
+    required this.isDarkMode,
   });
 
   @override
@@ -123,20 +125,24 @@ class _WalletTabState extends State<WalletTab> {
 
   // --- TÍNH NĂNG LIÊN KẾT NGÂN HÀNG THỰC (SIMULATION) ---
   void _showAddWalletFlow() {
+    Color sheetBg = widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    Color textColor = widget.isDarkMode ? Colors.white : Colors.black;
+
     showModalBottomSheet(
       context: context,
+      backgroundColor: sheetBg,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
       builder: (context) => Container(
         padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("Thêm nguồn tiền", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text("Thêm nguồn tiền", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
             const SizedBox(height: 20),
             ListTile(
               leading: const Icon(Icons.edit, color: Colors.blue),
-              title: const Text("Nhập thủ công"),
-              subtitle: const Text("Tự nhập tên và số dư"),
+              title: Text("Nhập thủ công", style: TextStyle(color: textColor)),
+              subtitle: Text("Tự nhập tên và số dư", style: TextStyle(color: widget.isDarkMode ? Colors.grey : null)),
               onTap: () {
                 Navigator.pop(context);
                 _showManualAddForm();
@@ -144,8 +150,8 @@ class _WalletTabState extends State<WalletTab> {
             ),
             ListTile(
               leading: const Icon(Icons.account_balance, color: Colors.purple),
-              title: const Text("Liên kết ngân hàng"),
-              subtitle: const Text("Kết nối an toàn qua ứng dụng ngân hàng"),
+              title: Text("Liên kết ngân hàng", style: TextStyle(color: textColor)),
+              subtitle: Text("Kết nối an toàn qua ứng dụng ngân hàng", style: TextStyle(color: widget.isDarkMode ? Colors.grey : null)),
               onTap: () {
                 Navigator.pop(context);
                 _showBankSelectionList();
@@ -158,6 +164,9 @@ class _WalletTabState extends State<WalletTab> {
   }
 
   void _showBankSelectionList() {
+    Color sheetBg = widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    Color textColor = widget.isDarkMode ? Colors.white : Colors.black;
+    
     final List<Map<String, dynamic>> vnbanks = [
       {'name': 'Vietcombank', 'color': Colors.green},
       {'name': 'Techcombank', 'color': Colors.red},
@@ -168,21 +177,22 @@ class _WalletTabState extends State<WalletTab> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: sheetBg,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.7,
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            const Text("Chọn ngân hàng", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text("Chọn ngân hàng", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
             const SizedBox(height: 15),
             Expanded(
               child: ListView.builder(
                 itemCount: vnbanks.length,
                 itemBuilder: (context, index) => ListTile(
                   leading: CircleAvatar(backgroundColor: vnbanks[index]['color'], child: const Icon(Icons.account_balance, color: Colors.white, size: 16)),
-                  title: Text(vnbanks[index]['name']),
-                  trailing: const Icon(Icons.chevron_right),
+                  title: Text(vnbanks[index]['name'], style: TextStyle(color: textColor)),
+                  trailing: Icon(Icons.chevron_right, color: textColor),
                   onTap: () => _simulateBankLinking(vnbanks[index]['name'], vnbanks[index]['color']),
                 ),
               ),
@@ -199,12 +209,13 @@ class _WalletTabState extends State<WalletTab> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
+        backgroundColor: widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const CircularProgressIndicator(),
             const SizedBox(height: 20),
-            Text("Đang kết nối an toàn với $bankName..."),
+            Text("Đang kết nối an toàn với $bankName...", style: TextStyle(color: widget.isDarkMode ? Colors.white : Colors.black)),
           ],
         ),
       ),
@@ -232,15 +243,19 @@ class _WalletTabState extends State<WalletTab> {
   void _showManualAddForm() {
     final nameController = TextEditingController();
     final balanceController = TextEditingController();
+    Color dialogBg = widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    Color textColor = widget.isDarkMode ? Colors.white : Colors.black;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Thêm ví thủ công"),
+        backgroundColor: dialogBg,
+        title: Text("Thêm ví thủ công", style: TextStyle(color: textColor)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: nameController, decoration: const InputDecoration(labelText: "Tên ví")),
-            TextField(controller: balanceController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Số dư")),
+            TextField(controller: nameController, style: TextStyle(color: textColor), decoration: InputDecoration(labelText: "Tên ví", labelStyle: TextStyle(color: textColor), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: textColor)))),
+            TextField(controller: balanceController, keyboardType: TextInputType.number, style: TextStyle(color: textColor), decoration: InputDecoration(labelText: "Số dư", labelStyle: TextStyle(color: textColor), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: textColor)))),
           ],
         ),
         actions: [
@@ -269,16 +284,19 @@ class _WalletTabState extends State<WalletTab> {
   void _showAddSavingGoal() {
     final nameController = TextEditingController();
     final targetController = TextEditingController();
+    Color dialogBg = widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    Color textColor = widget.isDarkMode ? Colors.white : Colors.black;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Mục tiêu mới"),
+        backgroundColor: dialogBg,
+        title: Text("Mục tiêu mới", style: TextStyle(color: textColor)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: nameController, decoration: const InputDecoration(labelText: "Tên mục tiêu (VD: Mua xe)")),
-            TextField(controller: targetController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Số tiền cần tiết kiệm")),
+            TextField(controller: nameController, style: TextStyle(color: textColor), decoration: InputDecoration(labelText: "Tên mục tiêu", labelStyle: TextStyle(color: textColor), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: textColor)))),
+            TextField(controller: targetController, keyboardType: TextInputType.number, style: TextStyle(color: textColor), decoration: InputDecoration(labelText: "Số tiền cần", labelStyle: TextStyle(color: textColor), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: textColor)))),
           ],
         ),
         actions: [
@@ -309,16 +327,19 @@ class _WalletTabState extends State<WalletTab> {
   void _showAddBill() {
     final nameController = TextEditingController();
     final amountController = TextEditingController();
+    Color dialogBg = widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    Color textColor = widget.isDarkMode ? Colors.white : Colors.black;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Hóa đơn mới"),
+        backgroundColor: dialogBg,
+        title: Text("Hóa đơn mới", style: TextStyle(color: textColor)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: nameController, decoration: const InputDecoration(labelText: "Tên hóa đơn (VD: Tiền nước)")),
-            TextField(controller: amountController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Số tiền")),
+            TextField(controller: nameController, style: TextStyle(color: textColor), decoration: InputDecoration(labelText: "Tên hóa đơn", labelStyle: TextStyle(color: textColor), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: textColor)))),
+            TextField(controller: amountController, keyboardType: TextInputType.number, style: TextStyle(color: textColor), decoration: InputDecoration(labelText: "Số tiền", labelStyle: TextStyle(color: textColor), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: textColor)))),
           ],
         ),
         actions: [
@@ -346,9 +367,13 @@ class _WalletTabState extends State<WalletTab> {
 
   // --- CÁC MODAL HIỂN THỊ DANH SÁCH + TÍNH NĂNG XÓA ---
   void _showSavingGoalsList() {
+    Color sheetBg = widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    Color textColor = widget.isDarkMode ? Colors.white : Colors.black;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: sheetBg,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Container(
@@ -359,7 +384,7 @@ class _WalletTabState extends State<WalletTab> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("Tiết kiệm", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text("Tiết kiệm", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
                   IconButton(onPressed: _showAddSavingGoal, icon: const Icon(Icons.add_circle, color: Color(0xFF635AD9))),
                 ],
               ),
@@ -384,17 +409,17 @@ class _WalletTabState extends State<WalletTab> {
                         setModalState(() {});
                       },
                       child: ListTile(
-                        title: Text(goal.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        title: Text(goal.name, style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const SizedBox(height: 5),
                             LinearProgressIndicator(value: progress, color: goal.color, backgroundColor: Colors.grey.shade200),
                             const SizedBox(height: 5),
-                            Text("${currencyFormat.format(goal.current)} / ${currencyFormat.format(goal.target)}"),
+                            Text("${currencyFormat.format(goal.current)} / ${currencyFormat.format(goal.target)}", style: TextStyle(color: widget.isDarkMode ? Colors.grey : null)),
                           ],
                         ),
-                        trailing: Text("${(progress * 100).toStringAsFixed(0)}%"),
+                        trailing: Text("${(progress * 100).toStringAsFixed(0)}%", style: TextStyle(color: textColor)),
                       ),
                     );
                   },
@@ -408,9 +433,13 @@ class _WalletTabState extends State<WalletTab> {
   }
 
   void _showBillsList() {
+    Color sheetBg = widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    Color textColor = widget.isDarkMode ? Colors.white : Colors.black;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: sheetBg,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Container(
@@ -421,7 +450,7 @@ class _WalletTabState extends State<WalletTab> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("Hóa đơn sắp tới", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text("Hóa đơn sắp tới", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
                   IconButton(onPressed: _showAddBill, icon: const Icon(Icons.add_circle, color: Colors.teal)),
                 ],
               ),
@@ -446,8 +475,8 @@ class _WalletTabState extends State<WalletTab> {
                       },
                       child: ListTile(
                         leading: const Icon(Icons.receipt_long, color: Colors.teal),
-                        title: Text(bill.name),
-                        subtitle: Text("Hạn: ${DateFormat('dd/MM/yyyy').format(bill.dueDate)}"),
+                        title: Text(bill.name, style: TextStyle(color: textColor)),
+                        subtitle: Text("Hạn: ${DateFormat('dd/MM/yyyy').format(bill.dueDate)}", style: TextStyle(color: widget.isDarkMode ? Colors.grey : null)),
                         trailing: Text(currencyFormat.format(bill.amount), style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                       ),
                     );
@@ -464,14 +493,19 @@ class _WalletTabState extends State<WalletTab> {
   // --- HÀM THIẾT LẬP HẠN MỨC ---
   void _showEditLimit() {
     final limitController = TextEditingController(text: monthlyLimit.toStringAsFixed(0));
+    Color dialogBg = widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    Color textColor = widget.isDarkMode ? Colors.white : Colors.black;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Thiết lập hạn mức chi tiêu"),
+        backgroundColor: dialogBg,
+        title: Text("Thiết lập hạn mức chi tiêu", style: TextStyle(color: textColor)),
         content: TextField(
           controller: limitController,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: "Hạn mức tháng này (₫)"),
+          style: TextStyle(color: textColor),
+          decoration: InputDecoration(labelText: "Hạn mức tháng này (₫)", labelStyle: TextStyle(color: textColor), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: textColor))),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy")),
@@ -493,30 +527,36 @@ class _WalletTabState extends State<WalletTab> {
   Widget build(BuildContext context) {
     double realTotalBalance = wallets.fold(0, (sum, item) => sum + item.balance);
 
+    // Bảng màu dựa trên Dark Mode
+    final Color textColor = widget.isDarkMode ? Colors.white : Colors.black;
+    final Color subTextColor = widget.isDarkMode ? Colors.grey[400]! : Colors.grey;
+    final Color cardColor = widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
+      // Màu nền được xử lý bởi Theme tại HomeScreen, nhưng đặt lại ở đây cho chắc chắn
+      backgroundColor: widget.isDarkMode ? const Color(0xFF121212) : const Color(0xFFF8F9FB),
       body: ListView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(20),
         children: [
           const SizedBox(height: 40),
-          const Text("Ví của tôi", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+          Text("Ví của tôi", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: textColor)),
           const SizedBox(height: 30),
-          _buildTotalWalletSummary(),
+          _buildTotalWalletSummary(cardColor, textColor, subTextColor),
           const SizedBox(height: 30),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Tài khoản & Thẻ", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              Text("Tổng: ${currencyFormat.format(realTotalBalance)}", style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+              Text("Tài khoản & Thẻ", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
+              Text("Tổng: ${currencyFormat.format(realTotalBalance)}", style: TextStyle(color: subTextColor, fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 15),
-          ...wallets.map((wallet) => _walletCard(wallet)),
+          ...wallets.map((wallet) => _walletCard(wallet, cardColor, textColor)),
           const SizedBox(height: 10),
-          _buildAddButton(),
+          _buildAddButton(subTextColor),
           const SizedBox(height: 30),
-          const Text("Tiện ích tài chính", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text("Tiện ích tài chính", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
           const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -525,18 +565,20 @@ class _WalletTabState extends State<WalletTab> {
                   label: "Hạn mức",
                   icon: Icons.speed,
                   color: Colors.redAccent,
+                  labelColor: textColor,
                   onTap: () {
                     showDialog(
                         context: context,
                         builder: (context) => AlertDialog(
-                              title: const Text("Hạn mức chi tiêu"),
+                              backgroundColor: cardColor,
+                              title: Text("Hạn mức chi tiêu", style: TextStyle(color: textColor)),
                               content: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text("Hạn mức: ${currencyFormat.format(monthlyLimit)}"),
-                                  Text("Đã tiêu: ${currencyFormat.format(widget.totalExpense)}"),
+                                  Text("Hạn mức: ${currencyFormat.format(monthlyLimit)}", style: TextStyle(color: textColor)),
+                                  Text("Đã tiêu: ${currencyFormat.format(widget.totalExpense)}", style: TextStyle(color: textColor)),
                                   const SizedBox(height: 10),
-                                  Text("Bạn đã chi tiêu ${((widget.totalExpense / monthlyLimit) * 100).toStringAsFixed(1)}% hạn mức tháng này."),
+                                  Text("Bạn đã chi tiêu ${((widget.totalExpense / monthlyLimit) * 100).toStringAsFixed(1)}% hạn mức tháng này.", style: TextStyle(color: subTextColor)),
                                 ],
                               ),
                               actions: [
@@ -545,9 +587,9 @@ class _WalletTabState extends State<WalletTab> {
                               ],
                             ));
                   }),
-              UtilityItem(label: "Tiết kiệm", icon: Icons.savings, color: Colors.pinkAccent, onTap: _showSavingGoalsList),
-              UtilityItem(label: "Hóa đơn", icon: Icons.receipt_long, color: Colors.teal, onTap: _showBillsList),
-              UtilityItem(label: "Báo cáo", icon: Icons.picture_as_pdf, color: Colors.indigo, onTap: _exportToPDF),
+              UtilityItem(label: "Tiết kiệm", icon: Icons.savings, color: Colors.pinkAccent, labelColor: textColor, onTap: _showSavingGoalsList),
+              UtilityItem(label: "Hóa đơn", icon: Icons.receipt_long, color: Colors.teal, labelColor: textColor, onTap: _showBillsList),
+              UtilityItem(label: "Báo cáo", icon: Icons.picture_as_pdf, color: Colors.indigo, labelColor: textColor, onTap: _exportToPDF),
             ],
           ),
           const SizedBox(height: 100),
@@ -556,39 +598,39 @@ class _WalletTabState extends State<WalletTab> {
     );
   }
 
-  Widget _buildTotalWalletSummary() {
+  Widget _buildTotalWalletSummary(Color cardColor, Color textColor, Color subTextColor) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _summaryColumn("Tổng thu", currencyFormat.format(widget.totalIncome), Colors.green, Icons.arrow_upward),
+          _summaryColumn("Tổng thu", currencyFormat.format(widget.totalIncome), Colors.green, Icons.arrow_upward, subTextColor),
           Container(width: 1, height: 40, color: Colors.grey.shade200),
-          _summaryColumn("Tổng chi", currencyFormat.format(widget.totalExpense), Colors.red, Icons.arrow_downward),
+          _summaryColumn("Tổng chi", currencyFormat.format(widget.totalExpense), Colors.red, Icons.arrow_downward, subTextColor),
         ],
       ),
     );
   }
 
-  Widget _summaryColumn(String label, String value, Color color, IconData icon) {
+  Widget _summaryColumn(String label, String value, Color color, IconData icon, Color subTextColor) {
     return Column(
       children: [
-        Row(children: [Icon(icon, size: 14, color: color), const SizedBox(width: 4), Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey))]),
+        Row(children: [Icon(icon, size: 14, color: color), const SizedBox(width: 4), Text(label, style: TextStyle(fontSize: 12, color: subTextColor))]),
         const SizedBox(height: 8),
         Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: color)),
       ],
     );
   }
 
-  Widget _walletCard(WalletModel wallet) {
+  Widget _walletCard(WalletModel wallet, Color cardColor, Color textColor) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(20)),
       child: ListTile(
         onTap: () => widget.onShowDetails(wallet.name, wallet.balance),
         leading: Container(
@@ -596,18 +638,22 @@ class _WalletTabState extends State<WalletTab> {
           decoration: BoxDecoration(color: wallet.color.withOpacity(0.1), shape: BoxShape.circle),
           child: Icon(wallet.icon, color: wallet.color),
         ),
-        title: Text(wallet.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(currencyFormat.format(wallet.balance)),
-        trailing: wallet.isLinked ? const Icon(Icons.check_circle, color: Colors.green, size: 18) : const Icon(Icons.chevron_right),
+        title: Text(wallet.name, style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+        subtitle: Text(currencyFormat.format(wallet.balance), style: TextStyle(color: textColor.withOpacity(0.8))),
+        trailing: wallet.isLinked ? const Icon(Icons.check_circle, color: Colors.green, size: 18) : Icon(Icons.chevron_right, color: textColor),
       ),
     );
   }
 
-  Widget _buildAddButton() {
+  Widget _buildAddButton(Color subTextColor) {
     return OutlinedButton(
       onPressed: _showAddWalletFlow,
-      style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
-      child: const Text("+ Thêm nguồn tiền mới", style: TextStyle(color: Colors.grey)),
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 15), 
+        side: BorderSide(color: subTextColor),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
+      ),
+      child: Text("+ Thêm nguồn tiền mới", style: TextStyle(color: subTextColor)),
     );
   }
 }
@@ -616,9 +662,10 @@ class UtilityItem extends StatelessWidget {
   final String label;
   final IconData icon;
   final Color color;
+  final Color labelColor;
   final VoidCallback onTap;
 
-  const UtilityItem({super.key, required this.label, required this.icon, required this.color, required this.onTap});
+  const UtilityItem({super.key, required this.label, required this.icon, required this.color, required this.labelColor, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -634,7 +681,7 @@ class UtilityItem extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+        Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: labelColor)),
       ],
     );
   }
