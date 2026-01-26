@@ -11,11 +11,14 @@ class HomeTab extends StatelessWidget {
   final double currentBalance;
   final double monthlyBudget;
   final double totalExpense;
+  
+  // Các hàm callback bắt buộc
   final VoidCallback onTopUp;
   final VoidCallback onTransfer;
   final VoidCallback onSetBudget;
   final Function(int) onDelete;
-  final String langCode; // Đã thêm để nhận diện ngôn ngữ
+  
+  final String langCode;
 
   const HomeTab({
     super.key,
@@ -36,12 +39,15 @@ class HomeTab extends StatelessWidget {
       return [const FlSpot(0, 0)];
     }
 
-    // Sắp xếp giao dịch theo thời gian tăng dần để vẽ biểu đồ
+    // Sắp xếp giao dịch theo thời gian tăng dần để vẽ biểu đồ chính xác
     List<TransactionModel> sortedTxs = List.from(transactions);
     sortedTxs.sort((a, b) => a.date.compareTo(b.date));
 
     List<FlSpot> spots = [];
     double runningBalance = 0; 
+
+    // Điểm khởi đầu (Gốc 0)
+    spots.add(const FlSpot(0, 0));
 
     for (int i = 0; i < sortedTxs.length; i++) {
       final tx = sortedTxs[i];
@@ -50,14 +56,14 @@ class HomeTab extends StatelessWidget {
       } else {
         runningBalance -= tx.amount;
       }
-      spots.add(FlSpot(i.toDouble(), runningBalance));
+      // i + 1 để tránh trùng điểm khởi đầu
+      spots.add(FlSpot((i + 1).toDouble(), runningBalance));
     }
     return spots;
   }
 
   @override
   Widget build(BuildContext context) {
-    // Biến hỗ trợ dịch thuật nhanh trong Widget
     final isVi = langCode == 'vi';
 
     return SingleChildScrollView(
@@ -68,53 +74,57 @@ class HomeTab extends StatelessWidget {
         children: [
           const SizedBox(height: 20),
           
-          // Widget SummaryCard (Lưu ý: Bạn có thể cần truyền langCode vào đây nếu bên trong nó có text)
+          // Thẻ hiển thị tổng số dư
           SummaryCard(balance: currentBalance),
           
           const SizedBox(height: 24),
           
-          // Nút chức năng Nạp/Chuyển
+          // Các nút nạp tiền/chuyển tiền
           ActionButtons(onTopUp: onTopUp, onTransfer: onTransfer),
           
           const SizedBox(height: 32),
           
-          // Biểu đồ xu hướng
           SectionHeader(
             title: isVi ? "Xu hướng số dư" : "Balance Trend", 
             actionText: isVi ? "Tháng này" : "This Month"
           ),
+          
           _buildLineChartCard(context),
           
           const SizedBox(height: 32),
           
-          // Danh sách giao dịch
           SectionHeader(
             title: isVi ? "Giao dịch gần đây" : "Recent Transactions", 
             actionText: isVi ? "Xem tất cả" : "See All"
           ),
+          
           _buildTransactionList(isVi),
           
-          const SizedBox(height: 100), // Khoảng trống cho FAB
+          // Khoảng đệm để không bị FloatingActionButton che khuất
+          const SizedBox(height: 100),
         ],
       ),
     );
   }
 
-  // --- BUILD BIỂU ĐỒ ---
+  // --- BUILD BIỂU ĐỒ BIẾN ĐỘNG ---
   Widget _buildLineChartCard(BuildContext context) {
     final spots = _generateSpots();
-    const primaryColor = Color(0xFF635AD9);
+    const primaryColor = Color(0xFF635AD9); 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final axisTextColor = isDark 
+          ? Colors.white.withValues(alpha: 0.9)
+          : Colors.black87;
 
     return Container(
-      height: 200, 
+      height: 240, 
       padding: const EdgeInsets.only(top: 24, bottom: 12, left: 12, right: 24),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 5),
           )
@@ -130,24 +140,75 @@ class HomeTab extends StatelessWidget {
               strokeWidth: 1,
             ),
           ),
-          titlesData: const FlTitlesData(show: false),
+          titlesData: FlTitlesData(
+            show: true,
+            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 45,
+                getTitlesWidget: (value, meta) {
+                String text = '';
+                final double absValue = value.abs();
+                final String sign = value < 0 ? '-' : '';
+                if (absValue >= 1000000) {
+                  text = '$sign${(absValue / 1000000).toStringAsFixed(1)}M';
+                } else if (absValue >= 1000) {
+                  text = '$sign${(absValue / 1000).toInt()}k';
+                } else {
+                  text = '$sign${absValue.toInt()}';
+                }
+                  
+                  return Text(
+                    text,
+                    style: TextStyle(color: axisTextColor, fontSize: 11, fontWeight: FontWeight.w600),
+                  );
+                },
+              ),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 30,
+                interval: 1,
+                getTitlesWidget: (value, meta) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      value.toInt().toString(),
+                      style: TextStyle(color: axisTextColor, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
           borderData: FlBorderData(show: false),
           lineBarsData: [
             LineChartBarData(
               spots: spots,
               isCurved: true,
-              preventCurveOverShooting: true, 
-              color: primaryColor,
-              barWidth: 3,
+              curveSmoothness: 0.35,
+              preventCurveOverShooting: true,
+              color: const Color.fromARGB(255, 198, 198, 209),
+              barWidth: 4, 
               isStrokeCapRound: true,
               dotData: FlDotData(
-                show: spots.length < 10,
+                show: spots.length < 15, 
+                getDotPainter: (spot, percent, barData, index) =>
+                    FlDotCirclePainter(
+                  radius: 3,
+                  color: const Color.fromARGB(255, 99, 110, 212),
+                  strokeWidth: 2,
+                  strokeColor: const Color.fromARGB(255, 215, 214, 219),
+                ),
               ),
               belowBarData: BarAreaData(
                 show: true,
                 gradient: LinearGradient(
                   colors: [
-                    primaryColor.withValues(alpha: 0.2),
+                    primaryColor.withValues(alpha: 0.3),
                     primaryColor.withValues(alpha: 0.0),
                   ],
                   begin: Alignment.topCenter,
@@ -169,11 +230,11 @@ class HomeTab extends StatelessWidget {
         child: Center(
           child: Column(
             children: [
-              Icon(Icons.receipt_long_outlined, size: 50, color: Colors.grey[400]),
+              Icon(Icons.receipt_long_outlined, size: 50, color: Colors.grey.withValues(alpha: 0.4)),
               const SizedBox(height: 10),
               Text(
                 isVi ? "Chưa có giao dịch nào" : "No transactions yet",
-                style: TextStyle(color: Colors.grey[500]),
+                style: TextStyle(color: Colors.grey.withValues(alpha: 0.6)),
               ),
             ],
           ),
@@ -198,12 +259,11 @@ class HomeTab extends StatelessWidget {
             ),
             alignment: Alignment.centerRight,
             padding: const EdgeInsets.only(right: 20),
-            child: const Icon(Icons.delete, color: Colors.white),
+            child: const Icon(Icons.delete_sweep, color: Colors.white, size: 28),
           ),
-          confirmDismiss: (_) async {
-            // Gọi hàm xóa đã truyền từ HomeScreen
-            onDelete(index);
-            return false;
+          confirmDismiss: (direction) async {
+            onDelete(index); 
+            return false; 
           },
           child: TransactionItem(transaction: tx),
         );

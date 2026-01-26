@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
-// Đảm bảo các đường dẫn import này chính xác với dự án của bạn
 import '../models/transaction_model.dart';
 import '../widgets/bottom_nav.dart';
 import './tabs/home_tab.dart'; 
@@ -28,11 +27,10 @@ class _HomeScreenState extends State<HomeScreen> {
   // --- QUẢN LÝ TRẠNG THÁI HỆ THỐNG ---
   bool _isDarkMode = false; 
   bool _isNotificationOn = true; 
-  String _langCode = 'vi'; // Biến trạng thái ngôn ngữ chính
+  String _langCode = 'vi'; 
   
   double _monthlyBudget = 0.0; 
   
-  // Format tiền tệ dựa trên ngôn ngữ
   NumberFormat get currencyFormat => _langCode == 'vi' 
       ? NumberFormat.currency(locale: 'vi_VN', symbol: '₫')
       : NumberFormat.currency(locale: 'en_US', symbol: '\$');
@@ -86,7 +84,6 @@ class _HomeScreenState extends State<HomeScreen> {
     await prefs.setBool('is_dark_mode', value);
   }
 
-  // Hàm quan trọng: Cập nhật ngôn ngữ và refresh UI
   Future<void> _changeLanguage(String code) async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -150,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // --- UI MODALS (CÓ ĐA NGÔN NGỮ) ---
+  // --- UI MODALS ---
   void _showBudgetDialog() {
     final controller = TextEditingController(text: _monthlyBudget.toStringAsFixed(0));
     showDialog(
@@ -242,7 +239,7 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(_langCode == 'vi' ? "Chào người dùng !" : "Hello User !", style: TextStyle(color: subTextColor, fontSize: 12)),
-          Text("", style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.bold)),
+          const Text("", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         ],
       ),
       actions: [
@@ -466,31 +463,31 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- BUILD HÀM CHÍNH ---
   @override
   Widget build(BuildContext context) {
-    // Biến màu nền động cho Scaffold chính
     final Color backgroundColor = _isDarkMode ? const Color(0xFF121212) : const Color(0xFFF8F9FB);
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      // Cập nhật AppBar nếu cần thiết dựa trên trạng thái DarkMode
       appBar: (_selectedIndex == 0 || _selectedIndex == 2) ? _buildAppBar() : null,
       
       body: Theme(
-        // Ép kiểu Theme dựa trên trạng thái để các Widget con đồng bộ hoàn toàn
         data: _isDarkMode 
             ? ThemeData.dark().copyWith(
                 scaffoldBackgroundColor: const Color(0xFF121212),
                 cardColor: const Color(0xFF1E1E1E),
                 dividerColor: Colors.white12,
-                dialogBackgroundColor: const Color(0xFF1E1E1E),
+                dialogTheme: const DialogThemeData(
+                  backgroundColor: Color(0xFF1E1E1E),
+                ),
               )
             : ThemeData.light().copyWith(
                 scaffoldBackgroundColor: const Color(0xFFF8F9FB),
                 cardColor: Colors.white,
                 dividerColor: Colors.grey[200],
-                dialogBackgroundColor: Colors.white,
+                dialogTheme: const DialogThemeData(
+                  backgroundColor: Colors.white,
+                ),
               ),
         child: IndexedStack(
           index: _selectedIndex,
@@ -512,6 +509,7 @@ class _HomeScreenState extends State<HomeScreen> {
               totalExpense: totalExpense,
               onShowDetails: _showWalletDetails,
               isDarkMode: _isDarkMode,
+              langCode: _langCode,
             ),
             ReportTab(
               transactions: _filteredTransactions, 
@@ -538,6 +536,7 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: CustomBottomNav(
         selectedIndex: _selectedIndex,
         onItemTapped: (index) => setState(() => _selectedIndex = index),
+        isDarkMode: _isDarkMode, 
       ),
     );
   }
